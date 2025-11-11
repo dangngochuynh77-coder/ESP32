@@ -2,63 +2,138 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Nạp firmware ESP32 - HDN77</title>
   <link rel="stylesheet" href="style.css" />
-  <script type="module" src="https://unpkg.com/esp-web-tools@10.1.0/dist/web/install-button.js?module"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsrsasign/11.1.0/jsrsasign-all-min.js"></script>
+  
   <style>
-    /* Thêm một chút CSS để căn chỉnh hộp chọn */
-    #firmware-selector {
-        width: 100%;
-        padding: 10px;
-        margin-bottom: 20px;
-        border-radius: 10px;
-        border: 1px solid #444;
-        background: #282c34;
-        color: #f0f0f0;
-        font-size: 1rem;
-        box-sizing: border-box; /* Quan trọng để padding không làm tăng chiều rộng */
-    }
-    /* Đặt nút nạp firmware sau hộp chọn */
-    esp-web-install-button {
-        margin-bottom: 20px;
-        display: block; /* Đảm bảo nó chiếm dòng riêng */
-    }
+    /* ... (CSS của bạn như cũ) ... */
+    #premium-option { display: none; color: #00d4ff; }
   </style>
+
+  <script type="module">
+    import { ESPLoader } from "https://unpkg.com/esptool-js@0.5.4/dist/web/index.js";
+    let loader, port;
+    window.connect = connect;
+    window.flashFirmware = flashFirmware;
+    window.verifyCode = verifyCode;
+
+    // 2. DÁN NỘI DUNG file 'public_key.pem' VÀO ĐÂY
+    const PUBLIC_KEY_PEM = `
+-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEArjl+0/xTwxmuLop8heYq
+rdlaV5RPDEothugYOqBH14bt8RiS/c2/m0iu3OwnwCFBW0xg5uOxbn8Yol97NQC6
+BztYW8GRlO/HntPtgVxCpMCy0LbdFOWabJbs88zCHvm1qPdB8Pt4WtlDgvCDfuO+
+9tpo2BzkwaullR0/kE8ltdhg4n/4xbbGFMkkiBoWQu0fQGhb5t6htJRR2R4JwOfC
+d6Xga8qSg350Vu/xo/pkPesTB+EbBCPSJXneLgIr8PHIav3ywRCeKLfBZHdtraF8
+8JbFkOOPXsszSRSyPDWqrtATtM1Ui6xDAoUZheGWB7SpOR9fZHWKETUZjslR9o4B
+qQIDAQAB
+-----END PUBLIC KEY-----
+`;
+
+    // 3. THÔNG ĐIỆP CỐ ĐỊNH (Phải khớp 100% với script Python)
+    const MESSAGE_TO_VERIFY = "HDN77_FIRMWARE_PREMIUM_ACCESS";
+
+    // 4. HÀM KIỂM TRA CODE (Cập nhật)
+    function verifyCode() {
+        const codeInput = document.getElementById('premium-code').value.trim();
+        const premiumOption = document.getElementById('premium-option');
+        const codeStatus = document.getElementById('code-status');
+
+        try {
+            // Khởi tạo đối tượng Signature
+            const sig = new jsrsasign.KJUR.crypto.Signature({"alg": "SHA256withRSA"});
+            // Nạp Khóa Công khai
+            sig.init(PUBLIC_KEY_PEM);
+            // Nạp thông điệp cần kiểm tra
+            sig.updateString(MESSAGE_TO_VERIFY);
+            
+            // Chuyển mã (Base64) người dùng nhập sang Hex (thư viện yêu cầu)
+            const keyAsHex = jsrsasign.b64tohex(codeInput);
+
+            // Xác minh!
+            const isValid = sig.verify(keyAsHex);
+
+            if (isValid) {
+                premiumOption.style.display = 'block';
+                codeStatus.innerText = '✅ Đã mở khóa Premium! Giờ bạn có thể chọn.';
+                codeStatus.style.color = '#10b981';
+            } else {
+                throw new Error("Chữ ký không hợp lệ.");
+            }
+        } catch (e) {
+            // Nếu mã nhập vào sai định dạng Base64 hoặc xác minh thất bại
+            premiumOption.style.display = 'none';
+            document.getElementById('radio-premium').checked = false;
+            document.getElementById('radio-free').checked = true;
+            codeStatus.innerText = '❌ Mã không hợp lệ!';
+            codeStatus.style.color = '#f59e0b';
+            console.error("Lỗi xác thực:", e.message);
+        }
+    }
+    
+    // ... (Các hàm connect() và flashFirmware() giữ nguyên như cũ) ...
+    async function connect() {
+      try {
+        port = await navigator.serial.requestPort();
+        await port.open({ baudRate: 115200 });
+        loader = new ESPLoader(port);
+        await loader.initialize();
+        document.getElementById("status").innerText = "✅ Đã kết nối ESP32";
+      } catch (e) {
+        document.getElementById("status").innerText = "❌ Lỗi: " + e.message;
+      }
+    }
+    async function flashFirmware() {
+      if (!loader) {
+        document.getElementById("status").innerText = "❌ Vui lòng kết nối ESP32 trước.";
+        return;
+      }
+      let firmwarePath;
+      if (document.getElementById('radio-free').checked) {
+          firmwarePath = "firmware_free.bin";
+      } else if (document.getElementById('radio-premium').checked) {
+          firmwarePath = "firmware_premium.bin";
+      } else {
+          document.getElementById("status").innerText = "⚠️ Vui lòng chọn một phiên bản firmware.";
+          return;
+      }
+      try {
+        document.getElementById("status").innerText = `⏳ Đang tải và ghi ${firmwarePath}...`;
+        const response = await fetch(firmwarePath);
+        if (!response.ok) throw new Error(`Không tìm thấy file ${firmwarePath} (${response.status})`);
+        const buffer = await response.arrayBuffer();
+        const flashOffset = 0x1000;
+        await loader.flashData(buffer, flashOffset);
+        document.getElementById("status").innerText = "✅ Nạp thành công!";
+      } catch (e) {
+        document.getElementById("status").innerText = "❌ Lỗi Nạp: " + e.message;
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="container">
     <h1>⚡ Nạp firmware ESP32</h1>
-    <p>
-      **1. Chọn phiên bản firmware.** <br>
-      **2. Kết nối thiết bị qua USB và nhấn Nạp.**
-    </p>
-
-    <select id="firmware-selector" onchange="updateManifest()">
-      <option value="manifest_v1.json">Firmware Phiên bản 1 (Mặc định)</option>
-      <option value="manifest_v2.json">Firmware Phiên bản 2 (Beta)</option>
-      </select>
-    
-    <esp-web-install-button id="install-button" manifest="manifest_v1.json"></esp-web-install-button>
-
+    <p>Nhập mã Premium để mở khóa:</p>
+    <input type="text" id="premium-code" placeholder="Nhập mã License Key tại đây">
+    <button onclick="verifyCode()" style="background-color: #f59e0b; color: white;">Xác thực Mã</button>
+    <p id="code-status"></p> 
+    <hr style="border: 1px solid #333; margin: 20px 0;">
+    <p>Chọn firmware để nạp:</p>
+    <div class="firmware-choice">
+      <input type="radio" id="radio-free" name="firmware" value="free" checked>
+      <label for="radio-free">⭐ FREE (Cơ bản)</label>
+    </div>
+    <div class="firmware-choice" id="premium-option">
+      <input type="radio" id="radio-premium" name="firmware" value="premium">
+      <label for="radio-premium">💎 PREMIUM (Trả phí)</label>
+    </div>
+    <hr style="border: 1px solid #333; margin: 20px 0;">
+    <button id="connect" onclick="connect()" style="background-color: #3b82f6; color: white;">🔌 Kết nối thiết bị</button>
+    <button id="flash" onclick="flashFirmware()" style="background-color: #10b981; color: white;">⬆️ Bắt đầu NẠP</button>
+    <p id="status">Chưa kết nối</p>
     <button class="back-btn" onclick="window.location.href='index.html'">← Quay lại trang chủ</button>
   </div>
-  
-  <script>
-    // Hàm JavaScript để cập nhật Manifest khi hộp chọn thay đổi
-    function updateManifest() {
-      const selector = document.getElementById('firmware-selector');
-      const installButton = document.getElementById('install-button');
-      
-      // Lấy giá trị manifest file đã chọn
-      const selectedManifest = selector.value;
-      
-      // Gán giá trị đó vào thuộc tính 'manifest' của nút nạp
-      installButton.setAttribute('manifest', selectedManifest);
-    }
-    
-    // Gán hàm vào window để có thể gọi được từ HTML
-    window.updateManifest = updateManifest;
-  </script>
 </body>
 </html>
