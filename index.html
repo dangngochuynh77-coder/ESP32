@@ -1,85 +1,16 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>ESP32 Web Flasher</title>
-<style>
-body {
-  font-family: Arial, sans-serif;
-  text-align: center;
-  margin-top: 80px;
-  background: #0f172a;
-  color: white;
-}
-button {
-  font-size: 16px;
-  margin: 10px;
-  padding: 10px 20px;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-}
-#connect { background-color: #3b82f6; color: white; }
-#flash { background-color: #10b981; color: white; }
-#reset { background-color: #f59e0b; color: white; }
-#status { margin-top: 20px; font-size: 18px; }
-input[type=file] { margin-top: 20px; }
-</style>
-<script type="module">
-import { ESPLoader } from "https://unpkg.com/esptool-js@0.5.4/dist/web/index.js";
-
-let loader, port;
-
-async function connect() {
-  try {
-    port = await navigator.serial.requestPort();
-    await port.open({ baudRate: 115200 });
-    loader = new ESPLoader(port);
-    await loader.initialize();
-    document.getElementById("status").innerText = "✅ Đã kết nối ESP32";
-  } catch (e) {
-    document.getElementById("status").innerText = "❌ Lỗi: " + e.message;
-  }
-}
-
-async function flash() {
-  try {
-    const file = document.getElementById("binFile").files[0];
-    if (!file) return alert("Chọn file .bin trước");
-
-    const buffer = await file.arrayBuffer();
-    const flashOffset = 0x1000;
-
-    document.getElementById("status").innerText = "⏳ Đang ghi...";
-    await loader.flashData(buffer, flashOffset);
-    document.getElementById("status").innerText = "✅ Nạp thành công!";
-  } catch (e) {
-    document.getElementById("status").innerText = "❌ Lỗi: " + e.message;
-  }
-}
-
-async function reset() {
-  if (loader) {
-    await loader.hardReset();
-    document.getElementById("status").innerText = "🔁 ESP32 đã reset";
-  }
-}
-
-window.connect = connect;
-window.flash = flash;
-window.reset = reset;
-</script>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HDN77 - ESP32 Flasher</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <h1>⚡ ESP32 Web Flasher</h1>
-  <input type="file" id="binFile" accept=".bin"><br>
-  <button id="connect" onclick="connect()">🔌 Kết nối</button>
-  <button id="flash" onclick="flash()">⬆️ Nạp</button>
-  <button id="reset" onclick="reset()">🔁 Reset</button>
-  <p id="status">Chưa kết nối</p>
-  <footer style="margin-top:40px;font-size:13px;opacity:0.6">
-    © 2025 HDN77- Flash Esp32
-  </footer>
+  <div class="container">
+    <h1>👋 Chào mừng đến với <span class="brand">HDN77</span></h1>
+    <p>Trang nạp firmware ESP32 dễ dàng, nhanh chóng và miễn phí!</p>
+    <button onclick="window.location.href='flash.html'">⚡ Flash Firmware</button>
+  </div>
 </body>
 </html>
