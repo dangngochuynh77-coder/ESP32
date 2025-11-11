@@ -5,7 +5,7 @@
     {
       "chipFamily": "ESP32",
       "parts": [
-        { "path": "**firmware_v1.bin**", "offset": 0x0 }
+        { "path": "firmware_v1.bin", "offset": 0x0 }
       ]
     }
   ]
