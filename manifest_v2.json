@@ -1,0 +1,12 @@
+{
+  "name": "HDN77 ESP32 Flasher - V2",
+  "version": "2.0.0",
+  "builds": [
+    {
+      "chipFamily": "ESP32",
+      "parts": [
+        { "path": "**firmware_v2.bin**", "offset": 0x1000 }
+      ]
+    }
+  ]
+}

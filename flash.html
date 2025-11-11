@@ -6,15 +6,59 @@
   <title>Nạp firmware ESP32 - HDN77</title>
   <link rel="stylesheet" href="style.css" />
   <script type="module" src="https://unpkg.com/esp-web-tools@10.1.0/dist/web/install-button.js?module"></script>
+  <style>
+    /* Thêm một chút CSS để căn chỉnh hộp chọn */
+    #firmware-selector {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border-radius: 10px;
+        border: 1px solid #444;
+        background: #282c34;
+        color: #f0f0f0;
+        font-size: 1rem;
+        box-sizing: border-box; /* Quan trọng để padding không làm tăng chiều rộng */
+    }
+    /* Đặt nút nạp firmware sau hộp chọn */
+    esp-web-install-button {
+        margin-bottom: 20px;
+        display: block; /* Đảm bảo nó chiếm dòng riêng */
+    }
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>⚡ Nạp firmware ESP32</h1>
-    <p>Kết nối thiết bị ESP32 của bạn qua cổng USB, sau đó chọn file firmware để nạp.</p>
+    <p>
+      **1. Chọn phiên bản firmware.** <br>
+      **2. Kết nối thiết bị qua USB và nhấn Nạp.**
+    </p>
 
-    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+    <select id="firmware-selector" onchange="updateManifest()">
+      <option value="manifest_v1.json">Firmware Phiên bản 1 (Mặc định)</option>
+      <option value="manifest_v2.json">Firmware Phiên bản 2 (Beta)</option>
+      </select>
+    
+    <esp-web-install-button id="install-button" manifest="manifest_v1.json"></esp-web-install-button>
 
     <button class="back-btn" onclick="window.location.href='index.html'">← Quay lại trang chủ</button>
   </div>
+  
+  <script>
+    // Hàm JavaScript để cập nhật Manifest khi hộp chọn thay đổi
+    function updateManifest() {
+      const selector = document.getElementById('firmware-selector');
+      const installButton = document.getElementById('install-button');
+      
+      // Lấy giá trị manifest file đã chọn
+      const selectedManifest = selector.value;
+      
+      // Gán giá trị đó vào thuộc tính 'manifest' của nút nạp
+      installButton.setAttribute('manifest', selectedManifest);
+    }
+    
+    // Gán hàm vào window để có thể gọi được từ HTML
+    window.updateManifest = updateManifest;
+  </script>
 </body>
 </html>
