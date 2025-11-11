@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Nạp firmware ESP32 - HDN77</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="module" src="https://unpkg.com/esp-web-tools@10.1.0/dist/web/install-button.js?module"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ Nạp firmware ESP32</h1>
+    <p>Kết nối thiết bị ESP32 của bạn qua cổng USB, sau đó chọn file firmware để nạp.</p>
+
+    <esp-web-install-button manifest="manifest.json"></esp-web-install-button>
+
+    <button class="back-btn" onclick="window.location.href='index.html'">← Quay lại trang chủ</button>
+  </div>
+</body>
+</html>
